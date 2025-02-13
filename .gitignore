@@ -1,0 +1,10 @@
+# Add this line if it's not already there
+.env.local
+
+node_modules
+.next
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
