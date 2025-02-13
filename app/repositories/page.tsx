@@ -1,16 +1,20 @@
 "use client"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import RepositorySelector from "@/components/RepositorySelector"
-import type { Repository } from "@/components/RepositorySelector"
 
-export default function RepositoriesPage() {
+type Repository = {
+  full_name: string;
+  // Add other repository properties as needed
+}
+
+function RepositoriesContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [token, setToken] = useState<string | null>(null)
 
   useEffect(() => {
-    const urlToken = searchParams.get("token")
+    const urlToken = searchParams?.get("token")
     if (urlToken) {
       localStorage.setItem("github_token", urlToken)
       setToken(urlToken)
@@ -34,4 +38,12 @@ export default function RepositoriesPage() {
   }
 
   return <RepositorySelector token={token} onSelectRepo={handleRepositorySelect} />
+}
+
+export default function RepositoriesPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <RepositoriesContent />
+    </Suspense>
+  )
 } 
