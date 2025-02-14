@@ -7,6 +7,17 @@ import { Button } from "@/components/ui/button"
 import { AlertCircle, Archive, GitBranch, ChevronDown, Trash2, ArchiveX } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Input } from "@/components/ui/input"
 
 interface Branch {
   name: string
@@ -28,6 +39,12 @@ export default function RepositoryPage() {
   const [archiving, setArchiving] = useState(false)
   const [lastArchived, setLastArchived] = useState<string[] | null>(null)
   const [operation, setOperation] = useState<Operation>('archive-and-delete')
+  const [confirmationOpen, setConfirmationOpen] = useState(false)
+  const [pendingOperation, setPendingOperation] = useState<{
+    operation: Operation
+    branches: string[]
+  } | null>(null)
+  const [confirmationInput, setConfirmationInput] = useState("")
 
   const owner = params.owner as string
   const name = params.name as string
@@ -87,12 +104,23 @@ export default function RepositoryPage() {
   }
 
   const handleOperation = async (op: Operation) => {
+    const selectedBranches = branches.filter(b => b.selected).map(b => b.name)
+    
+    if (op !== 'archive-only') {
+      setPendingOperation({ operation: op, branches: selectedBranches })
+      setConfirmationOpen(true)
+      return
+    }
+
+    await processOperation(op, selectedBranches)
+  }
+
+  const processOperation = async (op: Operation, selectedBranches: string[]) => {
     setArchiving(true)
     setError(null)
     setLastArchived(null)
     
     try {
-      const selectedBranches = branches.filter(b => b.selected).map(b => b.name)
       const token = localStorage.getItem("github_token")
       if (!token) {
         throw new Error("No authentication token found")
@@ -173,6 +201,19 @@ export default function RepositoryPage() {
       setError("Failed to process branches")
     } finally {
       setArchiving(false)
+    }
+  }
+
+  const getConfirmationWord = (op: Operation) => {
+    switch (op) {
+      case 'delete-only':
+        return 'delete'
+      case 'archive-and-delete':
+        return 'archive-delete'
+      case 'archive-only':
+        return 'archive'
+      default:
+        return ''
     }
   }
 
@@ -277,6 +318,57 @@ export default function RepositoryPage() {
           </div>
         </div>
       </CardContent>
+
+      <AlertDialog open={confirmationOpen} onOpenChange={setConfirmationOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Branch Operation</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to {pendingOperation?.operation === 'delete-only' ? 'delete' : 'archive and delete'} the following branches:
+              <ul className="mt-2 list-disc list-inside">
+                {pendingOperation?.branches.map(branch => (
+                  <li key={branch} className="text-sm">{branch}</li>
+                ))}
+              </ul>
+              {pendingOperation?.operation === 'delete-only' ? (
+                <p className="mt-2 font-semibold text-destructive">Warning: This action will permanently delete these branches without creating archive tags!</p>
+              ) : (
+                <>
+                  <p className="mt-2 font-semibold text-destructive">Warning: This action will permanently delete these branches after creating archive tags!</p>
+                  <p className="mt-2">Archive tags will be created before deletion.</p>
+                </>
+              )}
+              <div className="mt-4">
+                <p className="text-sm text-muted-foreground mb-2">
+                  Please type <span className="font-mono font-bold">{pendingOperation ? getConfirmationWord(pendingOperation.operation) : ''}</span> to confirm
+                </p>
+                <Input
+                  value={confirmationInput}
+                  onChange={(e) => setConfirmationInput(e.target.value)}
+                  placeholder="Type confirmation word..."
+                  className="max-w-[200px]"
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmationInput("")}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingOperation) {
+                  processOperation(pendingOperation.operation, pendingOperation.branches)
+                  setConfirmationOpen(false)
+                  setConfirmationInput("")
+                }
+              }}
+              className={pendingOperation?.operation === 'delete-only' ? 'bg-destructive hover:bg-destructive/90' : ''}
+              disabled={confirmationInput !== (pendingOperation ? getConfirmationWord(pendingOperation.operation) : '')}
+            >
+              {pendingOperation?.operation === 'delete-only' ? 'Delete Branches' : 'Archive and Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   )
 } 
