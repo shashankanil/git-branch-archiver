@@ -10,7 +10,7 @@ const GithubLogin = () => {
       console.error("NEXT_PUBLIC_GITHUB_CLIENT_ID is not set")
       return
     }
-    const redirectUri = "https://git-branch-archiver.vercel.app/api/auth/callback/github"
+    const redirectUri = "https://git-branch-archiver-ivory.vercel.app/api/auth/callback/github"
     const scope = "repo"
 
     window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}`
