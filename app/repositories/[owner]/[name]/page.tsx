@@ -267,6 +267,7 @@ export default function RepositoryPage() {
                   <Archive className="h-4 w-4 mr-2" />
                   Archive Only
                 </DropdownMenuItem>
+                {/* Commenting out delete operations for now
                 <DropdownMenuItem onClick={() => handleOperation('archive-and-delete')}>
                   <ArchiveX className="h-4 w-4 mr-2" />
                   Archive and Delete
@@ -275,6 +276,7 @@ export default function RepositoryPage() {
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete Only
                 </DropdownMenuItem>
+                */}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
